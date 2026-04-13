@@ -34,7 +34,7 @@
     <main>
         <div class="container">
             <div class="glass-panel">
-                <h2>Input CFG <span class="status-badge">Use 'eps' or 'ε' for Epsilon</span></h2>
+                <h2>Input CFG <button class="status-badge eps-btn" onclick="insertEpsilon()" title="Insert Epsilon symbol">Click to insert ε or type eps</button></h2>
                 <div class="input-wrapper">
                     <textarea id="grammar-input" spellcheck="false">
 S -> ABC | ε

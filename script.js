@@ -10,7 +10,20 @@ function toggleTheme() {
         icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
     }
 }
-
+// --- EPSILON INSERTION LOGIC ---
+function insertEpsilon() {
+    const input = document.getElementById('grammar-input');
+    
+    // Get current cursor position
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    
+    // Insert 'ε' at the cursor position (replaces highlighted text if any)
+    input.setRangeText('ε', start, end, 'end');
+    
+    // Bring focus back to the textarea so the user can keep typing immediately
+    input.focus();
+}
 // --- 1. CORE DATA STRUCTURES ---
 class Grammar {
     constructor() {
