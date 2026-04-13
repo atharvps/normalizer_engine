@@ -1,0 +1,83 @@
+***
+
+# ⚙️ Normalizer Engine: CFG to CNF & GNF
+
+**A web-based visualizer and transformation tool for Context-Free Grammars.** This project was developed to systematically convert Context-Free Grammars (CFGs) into Chomsky Normal Form (CNF) and Greibach Normal Form (GNF). By providing a step-by-step visualization of the intermediate grammars, this tool serves as an interactive educational platform to help students understand how grammars are standardized for use in theoretical computer science and parsing algorithms.
+
+---
+
+## ✨ Features
+
+* **Step-by-Step Execution:** Watch the algorithm unfold phase-by-phase (e.g., removing $\varepsilon$-productions, eliminating unit rules, binarizing).
+* **Automated Validation & Parsing:** Smart tokenizer that seamlessly handles custom variables, synthetic states, and standard notations without requiring strict spacing.
+* **Dual Transformation Algorithms:**
+    * **CNF Engine:** Implements the complete pipeline to achieve Chomsky Normal Form.
+    * **GNF Engine:** Handles complex variable ordering, left-recursion resolution, and backward substitution to achieve Greibach Normal Form.
+* **Interactive UI/UX:** * IDE-style grammar display with syntax highlighting.
+    * "Run All" automatic playback or manual "Next Step" controls.
+    * Glassmorphism design system with responsive Light/Dark mode themes.
+    * Quick-insert button for Epsilon ($\varepsilon$) symbols.
+
+---
+
+## 🛠️ Technologies Used
+
+* **HTML5:** Semantic structure and application layout.
+* **CSS3:** Custom variables, glassmorphism UI, advanced keyframe animations, and syntax highlighting.
+* **Vanilla JavaScript (ES6+):** Generator functions for algorithm step-tracking, object-oriented grammar parsing, and DOM manipulation. No external libraries required.
+
+---
+
+## 🚀 Getting Started
+
+Since this is a client-side web application, installation is immediate.
+
+1.  Clone or download the repository to your local machine.
+2.  Open the folder containing the project files.
+3.  Double-click `index.html` to run it in any modern web browser (Chrome, Firefox, Safari, Edge).
+
+---
+
+## 📝 Input Format Guide
+
+To ensure the parser reads your grammar correctly, use the following syntax:
+
+* **LHS:** Must be a single uppercase letter (e.g., `S`, `A`, `B`).
+* **Arrow:** Use `->` or `→` to separate the left-hand side from the right-hand side.
+* **Separators:** Use the pipe symbol `|` to separate multiple productions for the same variable.
+* **Epsilon:** Type `eps` or use the UI button to insert `ε`.
+
+**Example Input:**
+```text
+S -> ABC | ε
+A -> aA | eps
+B -> bB | ε
+C -> cC | c
+```
+
+---
+
+## 🧠 Algorithmic Pipeline
+
+### Chomsky Normal Form (CNF)
+1.  **Parse Input & Isolate Start:** Ensures the start symbol does not appear on the right-hand side.
+2.  **Eliminate $\varepsilon$-Productions:** Finds nullable variables and generates combinations of rules without $\varepsilon$.
+3.  **Eliminate Unit Rules:** Removes rules of the form $A \rightarrow B$ through substitution.
+4.  **Eliminate Useless Symbols:** Removes non-generating and unreachable symbols.
+5.  **Isolate Terminals:** Replaces terminals in mixed rules with new synthetic variables (e.g., $X_a$).
+6.  **Binarize Rules:** Breaks down long productions (length > 2) into binary rules using cascading variables ($P_1, P_2, \dots$).
+
+### Greibach Normal Form (GNF)
+1.  **Preparation Phase:** Applies the first four steps of the CNF pipeline (Isolate Start, Remove Epsilons, Remove Units, Remove Useless).
+2.  **Order Variables:** Establishes a strict numerical ordering of all non-terminals.
+3.  **Resolve Left Recursion:** Iterates through the ordered variables, substituting lower-indexed variables and eliminating immediate left recursion using new $Z_A$ states.
+4.  **Backward Substitution:** Works backward through the ordered variables to ensure every production starts with a terminal symbol.
+
+---
+
+## 🎓 Academic Context & Credits
+
+This project was developed as an evaluation submission for the **Theory of Automata and Formal Languages (TAFL)** course.
+
+* **Developed By:** Atharv
+* **Under the Guidance of:** Prof. Geetanjali Rathi
