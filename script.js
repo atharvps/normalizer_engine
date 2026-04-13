@@ -10,20 +10,16 @@ function toggleTheme() {
         icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
     }
 }
+
 // --- EPSILON INSERTION LOGIC ---
 function insertEpsilon() {
     const input = document.getElementById('grammar-input');
-    
-    // Get current cursor position
     const start = input.selectionStart;
     const end = input.selectionEnd;
-    
-    // Insert 'ε' at the cursor position (replaces highlighted text if any)
     input.setRangeText('ε', start, end, 'end');
-    
-    // Bring focus back to the textarea so the user can keep typing immediately
     input.focus();
 }
+
 // --- 1. CORE DATA STRUCTURES ---
 class Grammar {
     constructor() {
@@ -75,7 +71,6 @@ function parseGrammar(text) {
         let parts = line.split(/->|→/);
         if (parts.length !== 2) throw new Error(`Invalid syntax: ${line}. Use '->'`);
         
-        // Extract exactly one non-terminal for the LHS
         let lhsTokens = parts[0].match(/[A-Z]_[a-zA-Z0-9]+|[A-Z]|[^\s]/g);
         if (!lhsTokens || lhsTokens.length !== 1 || !isNonTerminal(lhsTokens[0])) {
             throw new Error(`LHS must be a single Capital letter (e.g., S): ${parts[0]}`);
@@ -85,11 +80,7 @@ function parseGrammar(text) {
         
         let rawRhs = parts[1].split('|');
         rawRhs.forEach(rhsStr => {
-            // 🧠 SMART TOKENIZER
-            // Auto-splits unspaced strings like "0S0" into ["0", "S", "0"]
-            // Matches 'eps', 'ε', synthetic vars (S_0), single Capitals, and single characters
             let symbols = rhsStr.match(/eps|ε|[A-Z]_[a-zA-Z0-9]+|[A-Z]|[^\s]/g);
-            
             if(!symbols || symbols.length === 0) symbols = ['eps'];
             g.addRule(lhs, symbols);
         });
@@ -98,6 +89,7 @@ function parseGrammar(text) {
     if (!g.startSymbol) throw new Error("Grammar is empty.");
     return g;
 }
+
 // --- 2. CHOMSKY NORMAL FORM (CNF) ALGORITHM ---
 function* cnfGenerator(initialGrammar) {
     let g = initialGrammar.clone();
@@ -116,7 +108,7 @@ function* cnfGenerator(initialGrammar) {
         g.rules = tempRules;
         g.startSymbol = 'S0';
         g.nonTerminals.add('S0');
-        yield { step: "Isolated Start Symbol", grammar: g.clone() };
+        yield { step: "Isolated Start (S detected on RHS)", grammar: g.clone() };
     }
 
     let nullable = new Set();
@@ -257,38 +249,55 @@ function* cnfGenerator(initialGrammar) {
     }
     yield { step: "Isolated Terminals", grammar: g.clone() };
 
+    // Step 6: Binarize Rules (Optimized Right-to-Left Caching)
     let pIdx = 1;
-    let finalRules = new Map();
-    for(let [nt, prods] of g.rules) {
+    let binarizedRules = new Map(); 
+    let seqMap = new Map(); 
+
+    for (let [nt, prods] of g.rules) {
         let finalProds = [];
-        for(let p of prods) {
-            if(p.length > 2) {
-                let remainder = [...p];
-                let first = remainder.shift();
-                let currentVar = `P_${pIdx++}`;
-                finalProds.push([first, currentVar]);
-                g.nonTerminals.add(currentVar);
-                
-                while(remainder.length > 2) {
-                    let nextFirst = remainder.shift();
-                    let nextVar = `P_${pIdx++}`;
-                    g.nonTerminals.add(nextVar);
-                    if(!finalRules.has(currentVar)) finalRules.set(currentVar, []);
-                    finalRules.get(currentVar).push([nextFirst, nextVar]);
-                    currentVar = nextVar;
-                }
-                if(!finalRules.has(currentVar)) finalRules.set(currentVar, []);
-                finalRules.get(currentVar).push(remainder);
-                
-            } else {
+        for (let p of prods) {
+            if (p.length <= 2) {
                 finalProds.push(p);
+            } else {
+                let lastPVar = null;
+                let currentRight = [p[p.length - 2], p[p.length - 1]];
+                let key = currentRight.join(',');
+                
+                if (seqMap.has(key)) {
+                    lastPVar = seqMap.get(key);
+                } else {
+                    lastPVar = `P_${pIdx++}`;
+                    seqMap.set(key, lastPVar);
+                    g.nonTerminals.add(lastPVar);
+                    binarizedRules.set(lastPVar, [currentRight]);
+                }
+
+                for (let i = p.length - 3; i >= 1; i--) {
+                    let nextRight = [p[i], lastPVar];
+                    let nKey = nextRight.join(',');
+                    
+                    if (seqMap.has(nKey)) {
+                        lastPVar = seqMap.get(nKey);
+                    } else {
+                        let nextPVar = `P_${pIdx++}`;
+                        seqMap.set(nKey, nextPVar);
+                        g.nonTerminals.add(nextPVar);
+                        binarizedRules.set(nextPVar, [nextRight]);
+                        lastPVar = nextPVar;
+                    }
+                }
+                finalProds.push([p[0], lastPVar]);
             }
         }
-        finalRules.set(nt, finalProds);
+        g.rules.set(nt, finalProds); 
     }
-    g.rules = finalRules;
     
-    yield { step: "Binarized Rules (CNF)", grammar: g.clone() };
+    for (let [pVar, prods] of binarizedRules) {
+        g.rules.set(pVar, prods);
+    }
+    
+    yield { step: "Binarized Rules (Redundancy Eliminated)", grammar: g.clone() };
     return g;
 }
 
@@ -310,7 +319,7 @@ function* gnfGenerator(initialGrammar) {
         g.rules = tempRules;
         g.startSymbol = 'S0';
         g.nonTerminals.add('S0');
-        yield { step: "Prep: Isolate Start", grammar: g.clone() };
+        yield { step: "Prep: Isolated Start (S detected on RHS)", grammar: g.clone() };
     }
 
     let nullable = new Set();
@@ -613,6 +622,8 @@ function getSymbolClass(sym) {
 function buildStepper(stepsData) {
     const container = document.getElementById('stepper');
     container.innerHTML = '';
+    container.classList.add('active-steps');
+    
     stepsData.forEach((text, idx) => {
         const step = document.createElement('div');
         step.className = `step-item ${idx === 0 ? 'active' : ''}`;
@@ -652,12 +663,12 @@ function startConversion(type) {
             currentGenerator = cnfGenerator(initialGrammar);
             buildStepper([
                 "Parse Input",
-                "Isolate Start Symbol",
+                "Isolate Start",
                 "Eliminate Epsilons",
                 "Eliminate Unit Rules",
                 "Eliminate Useless",
                 "Isolate Terminals",
-                "Binarize Rules (CNF)"
+                "Binarize Rules"
             ]);
         } else if (type === 'GNF') {
             currentGenerator = gnfGenerator(initialGrammar);
@@ -726,11 +737,13 @@ function resetUI() {
             // Reset complete. Awaiting new instructions...
         </div>
     `;
-    document.getElementById('stepper').innerHTML = `
-        <div style="color: var(--text-muted); text-align: center; font-size: 0.85rem; margin-top: 1rem;">
-            Select a target normal form to begin.
-        </div>
+    
+    const stepper = document.getElementById('stepper');
+    stepper.classList.remove('active-steps');
+    stepper.innerHTML = `
+        <div class="empty-stepper-msg">Select a target normal form to begin.</div>
     `;
+    
     document.getElementById('btn-next').disabled = true;
     document.getElementById('btn-run-all').disabled = true;
     document.getElementById('btn-reset').disabled = true;
