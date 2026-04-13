@@ -73,28 +73,31 @@ function parseGrammar(text) {
         if (!line.trim() || line.trim().startsWith('//')) return;
         
         let parts = line.split(/->|→/);
-        if (parts.length !== 2) throw new Error(`Invalid syntax: ${line}. Use '->' or '→'`);
+        if (parts.length !== 2) throw new Error(`Invalid syntax: ${line}. Use '->'`);
         
-        let lhs = parts[0].trim();
-        if (!isNonTerminal(lhs)) throw new Error(`LHS must be a non-terminal: ${lhs}`);
+        // Extract exactly one non-terminal for the LHS
+        let lhsTokens = parts[0].match(/[A-Z]_[a-zA-Z0-9]+|[A-Z]|[^\s]/g);
+        if (!lhsTokens || lhsTokens.length !== 1 || !isNonTerminal(lhsTokens[0])) {
+            throw new Error(`LHS must be a single Capital letter (e.g., S): ${parts[0]}`);
+        }
+        let lhs = lhsTokens[0];
         if (!g.startSymbol) g.startSymbol = lhs;
         
         let rawRhs = parts[1].split('|');
         rawRhs.forEach(rhsStr => {
-            // Updated Tokenizer: Extracts 'eps', 'ε', Variables, or single characters
-            let symbols = rhsStr.match(/(eps|ε|[A-Z][0-9_]*|[^\s])/g) || [];
+            // 🧠 SMART TOKENIZER
+            // Auto-splits unspaced strings like "0S0" into ["0", "S", "0"]
+            // Matches 'eps', 'ε', synthetic vars (S_0), single Capitals, and single characters
+            let symbols = rhsStr.match(/eps|ε|[A-Z]_[a-zA-Z0-9]+|[A-Z]|[^\s]/g);
             
-            // Normalize 'eps' to 'ε' universally
-            symbols = symbols.map(sym => sym === 'eps' ? 'ε' : sym);
-            
-            if(symbols.length === 0) symbols = ['ε'];
+            if(!symbols || symbols.length === 0) symbols = ['eps'];
             g.addRule(lhs, symbols);
         });
     });
+    
     if (!g.startSymbol) throw new Error("Grammar is empty.");
     return g;
 }
-
 // --- 2. CHOMSKY NORMAL FORM (CNF) ALGORITHM ---
 function* cnfGenerator(initialGrammar) {
     let g = initialGrammar.clone();
