@@ -273,17 +273,7 @@ script.js
 
 Requires ES2018+ (generators, spread, `Map`/`Set`). No polyfills needed for any modern browser.
 
----
 
-## ✦ Roadmap
-
-- [ ] Export transformed grammar as plain text / LaTeX
-- [ ] CYK parsing algorithm using the generated CNF
-- [ ] Parse tree visualization
-- [ ] Support for multi-character non-terminals (e.g. `EXPR`, `STMT`)
-- [ ] Share grammar via URL hash
-
----
 
 ## ✦ Credits
 
@@ -295,7 +285,7 @@ Under the guidance of **Prof. Geetanjali Rathi**
 
 <br/>
 
-*Built with pure HTML, CSS & JavaScript — no frameworks, no build tools, no nonsense.*
+
 
 </div>
 
